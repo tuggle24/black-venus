@@ -1,37 +1,40 @@
-export function createSpy() {
+export function createSpy(fakeFunction = () => {}) {
   let spyName = "";
   let fakeReturnValue = undefined;
-  let fakeFunction = () => {};
   const calls = [];
   const results = [];
-  const esp628 = (...args) => {
+  function spy(...args) {
     calls.push(args);
     results.push(fakeFunction(...args) || fakeReturnValue);
     return results[results.length - 1];
+  }
+
+  const trapper = {
+    get: function (target, property, receiver) {
+      if (property === "hasBeenCalled") {
+        return calls.length > 0;
+      }
+      if (property === "spyName") {
+        return spyName;
+      }
+      if (property === "calls") {
+        return calls;
+      }
+      if (property === "results") {
+        return results;
+      }
+    },
+    set: (target, property, value) => {
+      if (property === "spyName") {
+        spyName = value;
+        return true;
+      }
+      if (property === "fakeReturnValue") {
+        fakeReturnValue = value;
+        return true;
+      }
+    },
   };
 
-  return {
-    esp628,
-    get hasBeenCalled() {
-      return calls.length > 0;
-    },
-    set spyName(codeName) {
-      spyName = codeName;
-    },
-    set fakeReturnValue(givenValue) {
-      fakeReturnValue = givenValue;
-    },
-    get spyName() {
-      return spyName;
-    },
-    get calls() {
-      return calls;
-    },
-    get results() {
-      return results;
-    },
-    fakeFunction: (givenImplementation) => {
-      fakeFunction = givenImplementation;
-    },
-  };
+  return new Proxy(spy, trapper);
 }
