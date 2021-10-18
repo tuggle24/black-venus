@@ -4,9 +4,7 @@ import { createSpy } from "./black-venus.js";
 test("createSpy return a spy function", (t) => {
   const spy = createSpy();
 
-  const sut = spy();
-
-  t.falsy(sut); // should be true
+  t.notThrows(spy); // should be true
 });
 
 test("createSpy tracks if spy has been called", (t) => {
@@ -20,14 +18,20 @@ test("createSpy tracks if spy has been called", (t) => {
 test("createSpy retrieve set name", (t) => {
   const spy = createSpy();
 
-  spy.spyName = "black-venus";
+  t.is(spy.spyName, "");
+
+  spy.setSpyName("black-venus");
 
   t.is(spy.spyName, "black-venus");
+
+  spy.setSpyName("josephine");
+
+  t.is(spy.spyName, "josephine");
 });
 
 test("createSpy fake return value", (t) => {
   const spy = createSpy();
-  spy.fakeReturnValue = 17;
+  spy.returnValue(17);
 
   const sut = spy();
 
@@ -47,9 +51,29 @@ test("createSpy record call argument", (t) => {
 });
 
 test("createSpy fake function", (t) => {
-  const spy = createSpy((i) => i + 10);
+  const spy = createSpy({ fakeFunction: (i) => i + 10 });
 
   spy(7);
 
   t.is(spy.results[0], 17);
+});
+
+test("createSpy method chaining", (t) => {
+  const spy = createSpy();
+
+  spy.setSpyName("josephine").returnValue(17)();
+
+  t.is(spy.results[0], 17);
+  t.is(spy.spyName, "josephine");
+});
+
+test("createSpy can capture `this` with bound", (t) => {
+  const spy = createSpy();
+
+  const bound = spy.bind({ that: "this" });
+
+  t.notThrows(spy);
+  t.notThrows(bound);
+  t.deepEqual(spy.calls, [[], []]);
+  t.deepEqual(spy.instances, [{ that: "this" }]);
 });
