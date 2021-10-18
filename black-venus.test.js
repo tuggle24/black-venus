@@ -77,3 +77,32 @@ test("createSpy can capture `this` with bound", (t) => {
   t.deepEqual(spy.calls, [[], []]);
   t.deepEqual(spy.instances, [{ that: "this" }]);
 });
+
+test("createSpy add properties", (t) => {
+  const spy = createSpy();
+
+  spy.PI = 3.14;
+
+  t.is(spy.PI, 3.14);
+});
+
+test("createSpy add properties recursively", (t) => {
+  const spy = createSpy();
+
+  spy.constants.PI = 3.14;
+
+  t.is(spy.constants.PI, 3.14);
+});
+
+test("createSpy recursively define properties lazily", (t) => {
+  const spy = createSpy();
+
+  spy.constants.PI;
+
+  t.notThrows(spy);
+  t.notThrows(spy.constants);
+  t.notThrows(spy.constants.PI);
+  t.deepEqual(spy.calls, [[]]);
+  t.deepEqual(spy.constants.calls, [[]]);
+  t.deepEqual(spy.constants.PI.calls, [[]]);
+});

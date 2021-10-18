@@ -3,23 +3,25 @@ export function createSpy({ fakeFunction = () => {}, name = "" } = {}) {
   const calls = [];
   const instances = [];
   let spyName = "";
-  let returnValue = undefined;
+  let fakeReturnValue = undefined;
 
   function targetSpy(...stuff) {
-    results.push(returnValue || fakeFunction(...stuff));
+    results.push(fakeReturnValue || fakeFunction(...stuff));
     calls.push(stuff);
-    return returnValue;
+    return fakeReturnValue;
   }
 
-  targetSpy.setSpyName = function (stuff) {
+  function setSpyName(stuff) {
     spyName = stuff;
     return this;
-  };
+  }
+  setSpyName.bind(targetSpy);
 
-  targetSpy.returnValue = function (stuff) {
-    returnValue = stuff;
+  function returnValue(stuff) {
+    fakeReturnValue = stuff;
     return this;
-  };
+  }
+  returnValue.bind(targetSpy);
 
   const spy = new Proxy(targetSpy, {
     get: (target, property) => {
@@ -28,12 +30,21 @@ export function createSpy({ fakeFunction = () => {}, name = "" } = {}) {
       if (property === "hasBeenCalled") return calls.length > 0;
       if (property === "calls") return calls;
       if (property === "instances") return instances;
+      if (property === "setSpyName") return setSpyName;
+      if (property === "returnValue") return returnValue;
       if (property === "bind") {
         return (stuff) => {
           instances.push(stuff);
           return target.bind(stuff);
         };
       }
+      const result = Reflect.get(target, property);
+      if (result === undefined) {
+        const subSpy = createSpy();
+        target[property] = subSpy;
+        return subSpy;
+      }
+
       return Reflect.get(target, property);
     },
   });

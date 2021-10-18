@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "test": "ava",
-    "test:ava": "ava --watch"
+    "test:watch": "ava --watch"
   },
   "keywords": [],
   "author": "",
