@@ -1,45 +1,56 @@
 export function createSpy({ fakeFunction = () => {}, name = "" } = {}) {
-  const results = [];
-  const calls = [];
-  const instances = [];
-  let spyName = "";
-  let fakeReturnValue = undefined;
-
   function targetSpy(...stuff) {
-    results.push(fakeReturnValue || fakeFunction(...stuff));
-    calls.push(stuff);
-    return fakeReturnValue;
+    targetSpy.results.push(targetSpy.fakeReturnValue || fakeFunction(...stuff));
+    targetSpy.calls.push(stuff);
+    return targetSpy.fakeReturnValue;
   }
-
-  function setSpyName(stuff) {
-    spyName = stuff;
-    return this;
-  }
-  setSpyName.bind(targetSpy);
-
-  function returnValue(stuff) {
-    fakeReturnValue = stuff;
-    return this;
-  }
-  returnValue.bind(targetSpy);
+  Object.defineProperties(targetSpy, {
+    hasBeenCalled: {
+      get() {
+        return this.calls.length > 0;
+      },
+    },
+    results: {
+      value: [],
+    },
+    calls: {
+      value: [],
+    },
+    instances: {
+      value: [],
+    },
+    spyName: {
+      value: "",
+      writable: true,
+    },
+    fakeReturnValue: {
+      value: undefined,
+      writable: true,
+    },
+    setSpyName: {
+      value: function (stuff) {
+        targetSpy.spyName = stuff;
+        return this;
+      },
+    },
+    returnValue: {
+      value: function (stuff) {
+        targetSpy.fakeReturnValue = stuff;
+        return this;
+      },
+    },
+  });
 
   const spy = new Proxy(targetSpy, {
     get: (target, property) => {
-      if (property === "results") return results;
-      if (property === "spyName") return spyName;
-      if (property === "hasBeenCalled") return calls.length > 0;
-      if (property === "calls") return calls;
-      if (property === "instances") return instances;
-      if (property === "setSpyName") return setSpyName;
-      if (property === "returnValue") return returnValue;
       if (property === "bind") {
         return (stuff) => {
-          instances.push(stuff);
+          targetSpy.instances.push(stuff);
           return target.bind(stuff);
         };
       }
-      const result = Reflect.get(target, property);
-      if (result === undefined) {
+
+      if (Reflect.get(target, property) === undefined) {
         const subSpy = createSpy();
         target[property] = subSpy;
         return subSpy;

@@ -106,3 +106,15 @@ test("createSpy recursively define properties lazily", (t) => {
   t.deepEqual(spy.constants.calls, [[]]);
   t.deepEqual(spy.constants.PI.calls, [[]]);
 });
+
+test("createSpy create separate instances", (t) => {
+  const spy1 = createSpy();
+  const spy2 = createSpy();
+
+  spy1();
+  spy1();
+  spy2();
+
+  t.notDeepEqual(spy1, spy2);
+  t.not(spy1.calls.length, spy2.calls.length);
+});
