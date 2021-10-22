@@ -1,5 +1,5 @@
 import test from "ava";
-import { createSpy } from "./black-venus.js";
+import { createSpy, isSpy } from "./create-spy.js";
 
 test("createSpy return a spy function", (t) => {
   const spy = createSpy();
@@ -74,7 +74,8 @@ test("createSpy can capture `this` with bound", (t) => {
 
   t.notThrows(spy);
   t.notThrows(bound);
-  t.deepEqual(spy.calls, [[], []]);
+  t.deepEqual(spy.calls, [[]]);
+  t.deepEqual(bound.calls, [[]]);
   t.deepEqual(spy.instances, [{ that: "this" }]);
 });
 
@@ -107,7 +108,7 @@ test("createSpy recursively define properties lazily", (t) => {
   t.deepEqual(spy.constants.PI.calls, [[]]);
 });
 
-test("createSpy create separate instances", (t) => {
+test("createSpy create multiple different spies", (t) => {
   const spy1 = createSpy();
   const spy2 = createSpy();
 
@@ -118,3 +119,70 @@ test("createSpy create separate instances", (t) => {
   t.notDeepEqual(spy1, spy2);
   t.not(spy1.calls.length, spy2.calls.length);
 });
+
+test("createSpy can count how many times property being accessed", (t) => {
+  const spy = createSpy();
+
+  spy.key;
+  spy.key.subKey;
+  spy.key.subKey.routine();
+
+  t.is(spy.propertyAccessedCount.key, 3);
+  t.is(spy.key.propertyAccessedCount.subKey, 2);
+  t.is(spy.key.subKey.propertyAccessedCount.routine, 1);
+  t.deepEqual(spy.key.subKey.routine.calls, [[]]);
+});
+
+test("createSpy inspect how spy is being used ", (t) => {
+  const example = (execa) => {
+    execa.sync("unknown", ["command"]);
+    const subprocess = execa("node");
+    subprocess.killed;
+    subprocess.isCanceled;
+    subprocess.cancel();
+    subprocess.killed;
+    subprocess.isCanceled;
+  };
+  const spy = createSpy();
+
+  example(spy);
+
+  t.deepEqual(spy.sync.calls, [["unknown", ["command"]]]);
+  t.deepEqual(spy.calls, [["node"]]);
+  t.truthy(spy.results[0].killed);
+  t.truthy(spy.results[0].isCanceled);
+  t.deepEqual(spy.results[0].cancel.calls, [[]]);
+  t.truthy(spy.results[0].isCanceled);
+  t.truthy(spy.results[0].isCanceled);
+});
+
+test("createSpy create spy with new keyword", (t) => {
+  const spy = createSpy();
+
+  new spy();
+
+  t.deepEqual(spy.instances, [{}]);
+});
+
+test("createSpy has private isSpy property", (t) => {
+  const spy = createSpy();
+
+  const trainedSpy = spy();
+  const nestedSpy = spy.nested;
+
+  t.true(Reflect.has(spy, isSpy));
+  t.true(Reflect.has(trainedSpy, isSpy));
+  t.true(Reflect.has(nestedSpy, isSpy));
+});
+
+// test("createSpy fakeFunctionOnce take precedence over fakeReturnValueOnce", (t) => {
+//   const spy = createSpy({ fakeReturnValueOnce: 17, fakeFunctionOnce: () => 0 });
+
+//   spy();
+//   spy();
+//   spy();
+
+//   t.is(spy.results[0], 0);
+//   t.is(spy.results[1], 17);
+//   t.true(Reflect.has(spy.results[2], isSpy));
+// });
