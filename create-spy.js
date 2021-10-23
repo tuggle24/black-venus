@@ -2,14 +2,19 @@ export const isSpy = Symbol("spy");
 const returnBranch = Symbol("returnBranch");
 const returnValue = Symbol("returnValue");
 const returnImplementation = Symbol("returnImplementation");
+const oneTime = Symbol("oneTime");
 
 export function createSpy(configuration) {
   function targetSpy(...argumentsList) {
     targetSpy.calls.push(argumentsList);
 
     let result;
+    const hasQueuedReturns = targetSpy[oneTime].length !== 0;
+    const returnCondition = hasQueuedReturns
+      ? "oneTime"
+      : targetSpy[returnBranch];
 
-    switch (targetSpy[returnBranch]) {
+    switch (returnCondition) {
       case "returnValue":
         result = targetSpy[returnValue];
         break;
@@ -18,6 +23,13 @@ export function createSpy(configuration) {
         break;
       case "spy":
         result = createSpy(configuration);
+        break;
+      case "oneTime":
+        const queuedReturn = targetSpy[oneTime].shift();
+        result =
+          typeof queuedReturn === "function"
+            ? queuedReturn(...argumentsList)
+            : queuedReturn;
         break;
       default:
         result = createSpy(configuration);
@@ -46,6 +58,9 @@ export function createSpy(configuration) {
       value: configuration.spyName,
       writable: true,
     },
+    [oneTime]: {
+      value: [],
+    },
     [returnBranch]: {
       value: configuration.hasFakeFunction ? "returnImplementation" : "spy",
       writable: true,
@@ -57,6 +72,12 @@ export function createSpy(configuration) {
         return this;
       },
     },
+    fakeFunctionOnce: {
+      value: function (implementation) {
+        targetSpy[oneTime].push(implementation);
+        return this;
+      },
+    },
     [returnImplementation]: {
       value: configuration.hasFakeFunction && configuration.fakeFunction,
       writable: true,
@@ -65,6 +86,12 @@ export function createSpy(configuration) {
       value: function (value) {
         targetSpy[returnValue] = value;
         targetSpy[returnBranch] = "returnValue";
+        return this;
+      },
+    },
+    fakeValueOnce: {
+      value: function (value) {
+        targetSpy[oneTime].push(value);
         return this;
       },
     },

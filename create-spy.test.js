@@ -163,3 +163,39 @@ test("Return spy by default", (t) => {
   t.true(Reflect.has(nestedSpy, isSpy));
   t.true(Reflect.has(trainedSpy, isSpy));
 });
+
+test("Use fakeValueOnce 3 times", (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy();
+  spy.fakeValueOnce(7).fakeValueOnce(10).fakeValueOnce(17).fakeValue(27);
+  spy();
+  spy();
+  spy();
+  spy();
+
+  const results = spy.results.filter((_, index) => index !== 0);
+
+  t.true(Reflect.has(spy.results[0], isSpy));
+  t.deepEqual(results, [7, 10, 17, 27]);
+});
+
+test("Use fakeFunctionOnce 3 times", (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy();
+  spy
+    .fakeFunctionOnce(() => 7)
+    .fakeFunctionOnce(() => 10)
+    .fakeFunctionOnce(() => 17)
+    .fakeFunction(() => 27);
+  spy();
+  spy();
+  spy();
+  spy();
+
+  const results = spy.results.filter((_, index) => index !== 0);
+
+  t.true(Reflect.has(spy.results[0], isSpy));
+  t.deepEqual(results, [7, 10, 17, 27]);
+});
