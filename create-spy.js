@@ -1,19 +1,20 @@
 export const isSpy = Symbol("spy");
+const returnBranch = Symbol("returnBranch");
+const returnValue = Symbol("returnValue");
+const returnImplementation = Symbol("returnImplementation");
 
 export function createSpy(configuration) {
-  const hasReturnValue = Symbol("hasReturnValue");
-
   function targetSpy(...argumentsList) {
     targetSpy.calls.push(argumentsList);
 
     let result;
 
-    switch (targetSpy.returnBranch) {
+    switch (targetSpy[returnBranch]) {
       case "returnValue":
-        result = targetSpy.returnValue;
+        result = targetSpy[returnValue];
         break;
       case "returnImplementation":
-        result = targetSpy.returnImplementation(...argumentsList);
+        result = targetSpy[returnImplementation](...argumentsList);
         break;
       case "spy":
         result = createSpy(configuration);
@@ -45,29 +46,29 @@ export function createSpy(configuration) {
       value: configuration.spyName,
       writable: true,
     },
-    returnBranch: {
+    [returnBranch]: {
       value: configuration.hasFakeFunction ? "returnImplementation" : "spy",
       writable: true,
     },
     fakeFunction: {
       value: function (implementation) {
-        targetSpy.returnImplementation = implementation;
-        targetSpy.returnBranch = "returnImplementation";
+        targetSpy[returnImplementation] = implementation;
+        targetSpy[returnBranch] = "returnImplementation";
         return this;
       },
     },
-    returnImplementation: {
+    [returnImplementation]: {
       value: configuration.hasFakeFunction && configuration.fakeFunction,
       writable: true,
     },
     fakeValue: {
       value: function (value) {
-        targetSpy.returnValue = value;
-        targetSpy.returnBranch = "returnValue";
+        targetSpy[returnValue] = value;
+        targetSpy[returnBranch] = "returnValue";
         return this;
       },
     },
-    returnValue: {
+    [returnValue]: {
       value: undefined,
       writable: true,
     },
@@ -79,10 +80,6 @@ export function createSpy(configuration) {
     },
     propertyAccessedCount: {
       value: {},
-    },
-    [hasReturnValue]: {
-      value: false,
-      writable: true,
     },
     [isSpy]: {
       value: isSpy,
