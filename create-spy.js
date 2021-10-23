@@ -1,29 +1,31 @@
 export const isSpy = Symbol("spy");
 
-export function createSpy({
-  fakeFunction,
-  name = "",
-  context,
-  fakeReturnValue,
-  fakeReturnValueOnce,
-  fakeFunctionOnce,
-} = {}) {
-  const isFunctionGiven = typeof fakeFunction === "function";
+export function createSpy(configuration) {
+  const hasReturnValue = Symbol("hasReturnValue");
 
-  function baseSpy(...argumentsList) {
+  function targetSpy(...argumentsList) {
     targetSpy.calls.push(argumentsList);
-    const isReturnValueGiven = targetSpy.fakeReturnValue !== undefined;
 
-    const result = isFunctionGiven
-      ? fakeFunction(...argumentsList)
-      : isReturnValueGiven
-      ? targetSpy.fakeReturnValue
-      : createSpy();
+    let result;
+
+    switch (targetSpy.returnBranch) {
+      case "returnValue":
+        result = targetSpy.returnValue;
+        break;
+      case "returnImplementation":
+        result = targetSpy.returnImplementation(...argumentsList);
+        break;
+      case "spy":
+        result = createSpy(configuration);
+        break;
+      default:
+        result = createSpy(configuration);
+    }
 
     targetSpy.results.push(result);
     return result;
   }
-  const targetSpy = baseSpy.bind(context);
+
   Object.defineProperties(targetSpy, {
     hasBeenCalled: {
       get() {
@@ -40,10 +42,32 @@ export function createSpy({
       value: [],
     },
     spyName: {
-      value: "",
+      value: configuration.spyName,
       writable: true,
     },
-    fakeReturnValue: {
+    returnBranch: {
+      value: configuration.hasFakeFunction ? "returnImplementation" : "spy",
+      writable: true,
+    },
+    fakeFunction: {
+      value: function (implementation) {
+        targetSpy.returnImplementation = implementation;
+        targetSpy.returnBranch = "returnImplementation";
+        return this;
+      },
+    },
+    returnImplementation: {
+      value: configuration.hasFakeFunction && configuration.fakeFunction,
+      writable: true,
+    },
+    fakeValue: {
+      value: function (value) {
+        targetSpy.returnValue = value;
+        targetSpy.returnBranch = "returnValue";
+        return this;
+      },
+    },
+    returnValue: {
       value: undefined,
       writable: true,
     },
@@ -53,14 +77,12 @@ export function createSpy({
         return this;
       },
     },
-    returnValue: {
-      value: function (stuff) {
-        targetSpy.fakeReturnValue = stuff;
-        return this;
-      },
-    },
     propertyAccessedCount: {
       value: {},
+    },
+    [hasReturnValue]: {
+      value: false,
+      writable: true,
     },
     [isSpy]: {
       value: isSpy,
@@ -81,13 +103,15 @@ export function createSpy({
       if (property === "bind") {
         return (context) => {
           target.instances.push(context);
-          return createSpy({ context });
+          return createSpy(configuration);
         };
       }
 
       const hasKey = Reflect.has(target, property);
 
-      const value = hasKey ? Reflect.get(target, property) : createSpy();
+      const value = hasKey
+        ? Reflect.get(target, property)
+        : createSpy(configuration);
 
       if (!hasKey) target[property] = value;
 
@@ -98,7 +122,7 @@ export function createSpy({
     construct(target, argumentsList) {
       target.instances.push({});
       target.calls.push(argumentsList);
-      return createSpy();
+      return createSpy(configuration);
     },
   });
   return spy;

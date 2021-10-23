@@ -11,17 +11,16 @@ test("Accept a single argument of type function which will be default implementa
 test("Accept a single argument of type string for spy name", (t) => {
   const configuration = handleOptions("josephine");
 
-  t.is(configuration.name, "josephine");
+  t.is(configuration.spyName, "josephine");
 });
 
-test("Accept a name", (t) => {
-  const configuration = handleOptions({ name: "josephine" });
+test("Accept options object with name and function", (t) => {
+  const fakeImplementation = () => {};
+  const configuration = handleOptions({
+    spyName: "josephine",
+    fakeFunction: fakeImplementation,
+  });
 
-  t.is(configuration.name, "josephine");
-});
-
-test("Accept a fake value in ", (t) => {
-  const configuration = handleOptions({ name: "josephine" });
-
-  t.is(configuration.name, "josephine");
+  t.is(configuration.spyName, "josephine");
+  t.deepEqual(configuration.fakeFunction, fakeImplementation);
 });

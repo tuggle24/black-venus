@@ -1,7 +1,7 @@
 export function handleOptions(...options) {
   const configuration = {
-    fakeFunction: function () {},
-    name: "",
+    spyName: "",
+    hasFakeFunction: false,
   };
 
   if (options.length === 0) return configuration;
@@ -10,18 +10,21 @@ export function handleOptions(...options) {
 
   if (typeof argument === "function") {
     configuration.fakeFunction = argument;
+    configuration.hasFakeFunction = true;
     return configuration;
   }
 
   if (typeof argument === "string") {
-    configuration.name = argument;
+    configuration.spyName = argument;
     return configuration;
   }
 
-  if ("fakeFunction" in argument)
+  if ("fakeFunction" in argument) {
     configuration.fakeFunction = argument.fakeFunction;
+    configuration.hasFakeFunction = true;
+  }
 
-  if ("name" in argument) configuration.name = argument.name;
+  if ("spyName" in argument) configuration.spyName = argument.spyName;
 
   return configuration;
 }
