@@ -1,10 +1,10 @@
 import { dequal } from "dequal";
 
-const returnBranch = Symbol("returnBranch");
 const returnValue = Symbol("returnValue");
-const returnImplementation = Symbol("returnImplementation");
+const returnSpy = Symbol("returnSpy");
 const oneTime = Symbol("oneTime");
 const rehearsals = Symbol("rehearsals");
+
 export const isSpy = Symbol("spy");
 
 export function createSpy(configuration) {
@@ -21,27 +21,23 @@ export function createSpy(configuration) {
         ? "callIsRehearsed"
         : hasQueuedReturns
         ? "oneTime"
-        : targetSpy[returnBranch];
+        : targetSpy[returnSpy]
+        ? "spy"
+        : "returnValue";
 
     switch (returnCondition) {
-      case "returnValue":
-        result = targetSpy[returnValue];
+      case "callIsRehearsed":
+        result = rehearsal.returns;
         break;
-      case "returnImplementation":
-        result = targetSpy[returnImplementation](...args);
+      case "oneTime":
+        const queuedReturn = targetSpy[oneTime].shift();
+        result = queuedReturn(...args);
         break;
       case "spy":
         result = createSpy(configuration);
         break;
-      case "oneTime":
-        const queuedReturn = targetSpy[oneTime].shift();
-        result =
-          typeof queuedReturn === "function"
-            ? queuedReturn(...args)
-            : queuedReturn;
-        break;
-      case "callIsRehearsed":
-        result = rehearsal.returns;
+      case "returnValue":
+        result = targetSpy[returnValue](...args);
         break;
       default:
         result = createSpy(configuration);
@@ -73,14 +69,14 @@ export function createSpy(configuration) {
     [oneTime]: {
       value: [],
     },
-    [returnBranch]: {
-      value: configuration.hasFakeFunction ? "returnImplementation" : "spy",
+    [returnSpy]: {
+      value: !configuration.hasFakeFunction,
       writable: true,
     },
     fakeFunction: {
       value: function (implementation) {
-        targetSpy[returnImplementation] = implementation;
-        targetSpy[returnBranch] = "returnImplementation";
+        targetSpy[returnValue] = implementation;
+        targetSpy[returnSpy] = false;
         return this;
       },
     },
@@ -90,25 +86,23 @@ export function createSpy(configuration) {
         return this;
       },
     },
-    [returnImplementation]: {
-      value: configuration.hasFakeFunction && configuration.fakeFunction,
-      writable: true,
-    },
     fakeValue: {
       value: function (value) {
-        targetSpy[returnValue] = value;
-        targetSpy[returnBranch] = "returnValue";
+        targetSpy[returnValue] = () => value;
+        targetSpy[returnSpy] = false;
         return this;
       },
     },
     fakeValueOnce: {
       value: function (value) {
-        targetSpy[oneTime].push(value);
+        targetSpy[oneTime].push(() => value);
         return this;
       },
     },
     [returnValue]: {
-      value: undefined,
+      value: configuration.hasFakeFunction
+        ? configuration.fakeFunction
+        : undefined,
       writable: true,
     },
     setSpyName: {
