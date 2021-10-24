@@ -199,3 +199,19 @@ test("Use fakeFunctionOnce 3 times", (t) => {
   t.true(Reflect.has(spy.results[0], isSpy));
   t.deepEqual(results, [7, 10, 17, 27]);
 });
+
+test("Create rehearsals with given and return methods", (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy
+    .planRehearsals({ given: [7, 10, 10], returns: 27 })
+    .planRehearsals([{ given: [17, 17], returns: 34 }]);
+
+  const result = spy(7, 10, 10);
+  spy(17, 17);
+  spy();
+
+  t.is(result, 27);
+  t.is(spy.results[1], 34);
+  t.true(Reflect.has(spy.results[2], isSpy));
+});

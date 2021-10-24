@@ -1,25 +1,34 @@
-export const isSpy = Symbol("spy");
+import { dequal } from "dequal";
+
 const returnBranch = Symbol("returnBranch");
 const returnValue = Symbol("returnValue");
 const returnImplementation = Symbol("returnImplementation");
 const oneTime = Symbol("oneTime");
+const rehearsals = Symbol("rehearsals");
+export const isSpy = Symbol("spy");
 
 export function createSpy(configuration) {
-  function targetSpy(...argumentsList) {
-    targetSpy.calls.push(argumentsList);
+  function targetSpy(...args) {
+    targetSpy.calls.push(args);
 
     let result;
     const hasQueuedReturns = targetSpy[oneTime].length !== 0;
-    const returnCondition = hasQueuedReturns
-      ? "oneTime"
-      : targetSpy[returnBranch];
+    const rehearsal = targetSpy[rehearsals].find(({ given }) =>
+      dequal(given, args)
+    );
+    const returnCondition =
+      rehearsal !== undefined
+        ? "callIsRehearsed"
+        : hasQueuedReturns
+        ? "oneTime"
+        : targetSpy[returnBranch];
 
     switch (returnCondition) {
       case "returnValue":
         result = targetSpy[returnValue];
         break;
       case "returnImplementation":
-        result = targetSpy[returnImplementation](...argumentsList);
+        result = targetSpy[returnImplementation](...args);
         break;
       case "spy":
         result = createSpy(configuration);
@@ -28,8 +37,11 @@ export function createSpy(configuration) {
         const queuedReturn = targetSpy[oneTime].shift();
         result =
           typeof queuedReturn === "function"
-            ? queuedReturn(...argumentsList)
+            ? queuedReturn(...args)
             : queuedReturn;
+        break;
+      case "callIsRehearsed":
+        result = rehearsal.returns;
         break;
       default:
         result = createSpy(configuration);
@@ -111,6 +123,17 @@ export function createSpy(configuration) {
     [isSpy]: {
       value: isSpy,
     },
+    [rehearsals]: {
+      value: [],
+    },
+    planRehearsals: {
+      value: function (situations) {
+        if (!Array.isArray(situations)) situations = [situations];
+
+        targetSpy[rehearsals].push(...situations);
+        return this;
+      },
+    },
   });
 
   const increaseCount = (property) => {
@@ -143,9 +166,9 @@ export function createSpy(configuration) {
 
       return value;
     },
-    construct(target, argumentsList) {
+    construct(target, args) {
       target.instances.push({});
-      target.calls.push(argumentsList);
+      target.calls.push(args);
       return createSpy(configuration);
     },
   });
