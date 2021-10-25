@@ -317,3 +317,19 @@ test("Reject a value once", async (t) => {
 
   t.is(result1.message, "Espionage failed");
 });
+
+test("Throws an error", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.throws(new TypeError("Espionage failed"));
+
+  t.throws(spy, { instanceOf: TypeError });
+});
+
+test("Throws an error with specified message", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.throws("Espionage failed");
+
+  t.throws(spy, { message: "Espionage failed" });
+});

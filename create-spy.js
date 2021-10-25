@@ -169,6 +169,16 @@ export function createSpy(configuration) {
         return this;
       },
     },
+    throws: {
+      value: function (err) {
+        targetSpy[returnValue] = () => {
+          if (err instanceof Error) throw err;
+          throw new Error(err);
+        };
+        targetSpy[returnSpy] = false;
+        return this;
+      },
+    },
   });
 
   const increaseCount = (property) => {
