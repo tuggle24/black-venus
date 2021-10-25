@@ -181,15 +181,6 @@ export function createSpy(configuration) {
     },
   });
 
-  const increaseCount = (property) => {
-    targetSpy.propertyAccessedCount[property] = Reflect.get(
-      targetSpy.propertyAccessedCount,
-      property
-    )
-      ? Reflect.get(targetSpy.propertyAccessedCount, property) + 1
-      : 1;
-  };
-
   const spy = new Proxy(targetSpy, {
     get: (target, property) => {
       if (property === "then") return undefined;
@@ -207,9 +198,12 @@ export function createSpy(configuration) {
         ? Reflect.get(target, property)
         : createSpy(configuration);
 
-      if (!hasKey) target[property] = value;
+      if (!hasKey) {
+        target[property] = value;
+        targetSpy.propertyAccessedCount[property] = 0;
+      }
 
-      increaseCount(property);
+      targetSpy.propertyAccessedCount[property] += 1;
 
       return value;
     },
