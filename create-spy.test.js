@@ -215,3 +215,47 @@ test("Create rehearsals with given and return methods", (t) => {
   t.is(spy.results[1], 34);
   t.true(Reflect.has(spy.results[2], isSpy));
 });
+
+test("Return a promise value", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.fakeAsyncValue(44);
+
+  const result = await spy();
+
+  t.is(result, 44);
+});
+
+test("Return a promise function", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.fakeFunction(async () => 444);
+
+  const result = await spy();
+
+  t.is(result, 444);
+});
+
+test("Return a promise value once", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.fakeAsyncValueOnce(4444);
+
+  const result1 = await spy();
+  const result2 = await spy();
+
+  t.is(result1, 4444);
+  t.true(Reflect.has(result2, isSpy));
+});
+
+test("Return a promise function once", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.fakeFunctionOnce(async () => 777);
+
+  const result1 = await spy();
+  const result2 = await spy();
+
+  t.is(result1, 777);
+  t.true(Reflect.has(result2, isSpy));
+});

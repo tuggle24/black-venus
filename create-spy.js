@@ -87,15 +87,28 @@ export function createSpy(configuration) {
       },
     },
     fakeValue: {
-      value: function (value) {
-        targetSpy[returnValue] = () => value;
+      value: function (givenValue) {
+        targetSpy[returnValue] = () => givenValue;
         targetSpy[returnSpy] = false;
         return this;
       },
     },
     fakeValueOnce: {
-      value: function (value) {
-        targetSpy[oneTime].push(() => value);
+      value: function (givenValue) {
+        targetSpy[oneTime].push(() => givenValue);
+        return this;
+      },
+    },
+    fakeAsyncValue: {
+      value: function (givenValue) {
+        targetSpy[returnValue] = async () => givenValue;
+        targetSpy[returnSpy] = false;
+        return this;
+      },
+    },
+    fakeAsyncValueOnce: {
+      value: function (givenValue) {
+        targetSpy[oneTime].push(async () => givenValue);
         return this;
       },
     },
@@ -141,6 +154,8 @@ export function createSpy(configuration) {
 
   const spy = new Proxy(targetSpy, {
     get: (target, property) => {
+      if (property === "then") return undefined;
+
       if (property === "bind") {
         return (context) => {
           target.instances.push(context);
