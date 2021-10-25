@@ -142,9 +142,11 @@ test("Count how many times a property has been accessed", (t) => {
 test("Create spy with new keyword", (t) => {
   const spy = createSpy(handleOptions());
 
-  new spy();
+  const result = new spy();
 
-  t.deepEqual(spy.instances, [{}]);
+  t.true(Reflect.has(result, isSpy));
+  t.true(Reflect.has(spy.instances[0], isSpy));
+  t.is(result, spy.instances[0]);
 });
 
 test("Has private isSpy property", (t) => {
@@ -216,10 +218,46 @@ test("Create rehearsals with given and return methods", (t) => {
   t.true(Reflect.has(spy.results[2], isSpy));
 });
 
-test("Return a promise value", async (t) => {
+test("Create rehearsals with returns being a function", (t) => {
   const spy = createSpy(handleOptions());
 
-  spy.fakeAsyncValue(44);
+  spy.planRehearsals({ given: [30, 30], returns: (i, j) => i + j });
+
+  const result = spy(30, 30);
+
+  t.is(result, 60);
+});
+
+test("Create rehearsals with given and resolves methods", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy
+    .planRehearsals({ given: [7, 10, 10], resolves: 27 })
+    .planRehearsals([{ given: [17, 17], resolves: 34 }]);
+
+  const result1 = await spy(7, 10, 10);
+  const reuslt2 = await spy(17, 17);
+  spy();
+
+  t.is(result1, 27);
+  t.is(reuslt2, 34);
+  t.true(Reflect.has(spy.results[2], isSpy));
+});
+
+test("Create rehearsals with resolves as functions", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.planRehearsals({ given: [50, 5], resolves: async (i, j) => i + j });
+
+  const result1 = await spy(50, 5);
+
+  t.is(result1, 55);
+});
+
+test("Resolve a promise value", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.fakeResolvedValue(44);
 
   const result = await spy();
 
@@ -236,10 +274,10 @@ test("Return a promise function", async (t) => {
   t.is(result, 444);
 });
 
-test("Return a promise value once", async (t) => {
+test("Resolve a promise value once", async (t) => {
   const spy = createSpy(handleOptions());
 
-  spy.fakeAsyncValueOnce(4444);
+  spy.fakeResolvedValueOnce(4444);
 
   const result1 = await spy();
   const result2 = await spy();
@@ -258,4 +296,24 @@ test("Return a promise function once", async (t) => {
 
   t.is(result1, 777);
   t.true(Reflect.has(result2, isSpy));
+});
+
+test("Reject a value", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.fakeRejectedValue(new Error("Espionage failed"));
+
+  const result1 = await t.throwsAsync(spy);
+
+  t.is(result1.message, "Espionage failed");
+});
+
+test("Reject a value once", async (t) => {
+  const spy = createSpy(handleOptions());
+
+  spy.fakeRejectedValueOnce(new Error("Espionage failed"));
+
+  const result1 = await t.throwsAsync(spy);
+
+  t.is(result1.message, "Espionage failed");
 });

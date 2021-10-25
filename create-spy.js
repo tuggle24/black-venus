@@ -27,7 +27,7 @@ export function createSpy(configuration) {
 
     switch (returnCondition) {
       case "callIsRehearsed":
-        result = rehearsal.returns;
+        result = rehearsal.finalValue(...args);
         break;
       case "oneTime":
         const queuedReturn = targetSpy[oneTime].shift();
@@ -99,14 +99,27 @@ export function createSpy(configuration) {
         return this;
       },
     },
-    fakeAsyncValue: {
+    fakeResolvedValue: {
       value: function (givenValue) {
         targetSpy[returnValue] = async () => givenValue;
         targetSpy[returnSpy] = false;
         return this;
       },
     },
-    fakeAsyncValueOnce: {
+    fakeRejectedValue: {
+      value: function (givenValue) {
+        targetSpy[returnValue] = () => Promise.reject(givenValue);
+        targetSpy[returnSpy] = false;
+        return this;
+      },
+    },
+    fakeRejectedValueOnce: {
+      value: function (givenValue) {
+        targetSpy[oneTime].push(() => Promise.reject(givenValue));
+        return this;
+      },
+    },
+    fakeResolvedValueOnce: {
       value: function (givenValue) {
         targetSpy[oneTime].push(async () => givenValue);
         return this;
@@ -134,10 +147,25 @@ export function createSpy(configuration) {
       value: [],
     },
     planRehearsals: {
-      value: function (situations) {
-        if (!Array.isArray(situations)) situations = [situations];
+      value: function (givenRehearsals) {
+        if (!Array.isArray(givenRehearsals))
+          givenRehearsals = [givenRehearsals];
 
-        targetSpy[rehearsals].push(...situations);
+        const refinedRehearsals = givenRehearsals.map((rehearsal) => {
+          let finalValue = rehearsal.returns || rehearsal.resolves;
+          const isAFunction = typeof finalValue === "function";
+
+          if (!isAFunction && "resolves" in rehearsal)
+            finalValue = Promise.resolve(finalValue);
+
+          return {
+            given: rehearsal.given,
+            finalValue: isAFunction ? finalValue : () => finalValue,
+          };
+        });
+
+        targetSpy[rehearsals].push(...refinedRehearsals);
+
         return this;
       },
     },
@@ -176,9 +204,10 @@ export function createSpy(configuration) {
       return value;
     },
     construct(target, args) {
-      target.instances.push({});
+      const newSpy = createSpy(configuration);
+      target.instances.push(newSpy);
       target.calls.push(args);
-      return createSpy(configuration);
+      return newSpy;
     },
   });
   return spy;
