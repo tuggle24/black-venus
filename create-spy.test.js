@@ -1,15 +1,15 @@
 import test from "ava";
-import { createSpy, isSpy } from "./create-spy.js";
+import { spyFactory, isSpy } from "./create-spy.js";
 import { handleOptions } from "./handle-options.js";
 
 test("return a spy function", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   t.notThrows(spy); // should be true
 });
 
 test("tracks if spy has been called at least once", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy();
 
@@ -17,7 +17,7 @@ test("tracks if spy has been called at least once", (t) => {
 });
 
 test("can set and get name", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   t.is(spy.spyName, "");
 
@@ -31,7 +31,7 @@ test("can set and get name", (t) => {
 });
 
 test("Use given fake function given via the 'fakeFunction' method", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
   spy.fakeFunction(() => 7000);
 
   const sut = spy();
@@ -40,7 +40,7 @@ test("Use given fake function given via the 'fakeFunction' method", (t) => {
 });
 
 test("Return given fake value", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
   spy.fakeValue(17);
 
   const sut = spy();
@@ -49,7 +49,7 @@ test("Return given fake value", (t) => {
 });
 
 test("Record call arguments", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy(7, 10, 17, 27);
   spy(34, 49);
@@ -61,7 +61,7 @@ test("Record call arguments", (t) => {
 });
 
 test("Use given name", (t) => {
-  const spy = createSpy(
+  const spy = spyFactory(
     handleOptions({ fakeFunction: (i) => i + 10, spyName: "josephine" })
   );
 
@@ -69,7 +69,7 @@ test("Use given name", (t) => {
 });
 
 test("Use given fake function passed as an option", (t) => {
-  const spy = createSpy(
+  const spy = spyFactory(
     handleOptions({ fakeFunction: (i) => i + 10, name: "" })
   );
 
@@ -79,7 +79,7 @@ test("Use given fake function passed as an option", (t) => {
 });
 
 test("Allow method chaining", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.setSpyName("josephine").fakeValue(17)();
 
@@ -88,7 +88,7 @@ test("Allow method chaining", (t) => {
 });
 
 test("capture 'this' value during bind operation", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   const bound = spy.bind({ that: "this" });
 
@@ -100,7 +100,7 @@ test("capture 'this' value during bind operation", (t) => {
 });
 
 test("Add custom properties", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.constants.PI = 3.14;
 
@@ -111,9 +111,9 @@ test("Add custom properties", (t) => {
   t.is(spy.constants.PI, 3.14);
 });
 
-test("createSpy create multiple different spies", (t) => {
-  const spy1 = createSpy(handleOptions());
-  const spy2 = createSpy(handleOptions());
+test("spyFactory create multiple different spies", (t) => {
+  const spy1 = spyFactory(handleOptions());
+  const spy2 = spyFactory(handleOptions());
 
   spy1();
   spy1();
@@ -127,20 +127,19 @@ test("createSpy create multiple different spies", (t) => {
 });
 
 test("Count how many times a property has been accessed", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.key;
   spy.key.subKey;
   spy.key.subKey.routine();
 
-  t.is(spy.propertyAccessedCount.key, 3);
-  t.is(spy.key.propertyAccessedCount.subKey, 2);
-  t.is(spy.key.subKey.propertyAccessedCount.routine, 1);
-  t.deepEqual(spy.key.subKey.routine.calls, [[]]);
+  t.is(spy.getReadCount("key"), 3);
+  t.is(spy.key.getReadCount("subKey"), 2);
+  t.is(spy.key.subKey.getReadCount("routine"), 1);
 });
 
 test("Create spy with new keyword", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   const result = new spy();
 
@@ -150,14 +149,14 @@ test("Create spy with new keyword", (t) => {
 });
 
 test("Has private isSpy property", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   t.true(Reflect.has(spy, isSpy));
   t.falsy(Reflect.has(spy, "isSpy"));
 });
 
 test("Return spy by default", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   const trainedSpy = spy();
   const nestedSpy = spy.nested;
@@ -167,7 +166,7 @@ test("Return spy by default", (t) => {
 });
 
 test("Use fakeValueOnce 3 times", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy();
   spy.fakeValueOnce(7).fakeValueOnce(10).fakeValueOnce(17).fakeValue(27);
@@ -183,7 +182,7 @@ test("Use fakeValueOnce 3 times", (t) => {
 });
 
 test("Use fakeFunctionOnce 3 times", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy();
   spy
@@ -203,7 +202,7 @@ test("Use fakeFunctionOnce 3 times", (t) => {
 });
 
 test("Create rehearsals with given and return methods", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy
     .planRehearsals({ given: [7, 10, 10], returns: 27 })
@@ -219,7 +218,7 @@ test("Create rehearsals with given and return methods", (t) => {
 });
 
 test("Create rehearsals with returns being a function", (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.planRehearsals({ given: [30, 30], returns: (i, j) => i + j });
 
@@ -229,7 +228,7 @@ test("Create rehearsals with returns being a function", (t) => {
 });
 
 test("Create rehearsals with given and resolves methods", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy
     .planRehearsals({ given: [7, 10, 10], resolves: 27 })
@@ -245,7 +244,7 @@ test("Create rehearsals with given and resolves methods", async (t) => {
 });
 
 test("Create rehearsals with resolves as functions", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.planRehearsals({ given: [50, 5], resolves: async (i, j) => i + j });
 
@@ -255,7 +254,7 @@ test("Create rehearsals with resolves as functions", async (t) => {
 });
 
 test("Resolve a promise value", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.fakeResolvedValue(44);
 
@@ -265,7 +264,7 @@ test("Resolve a promise value", async (t) => {
 });
 
 test("Return a promise function", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.fakeFunction(async () => 444);
 
@@ -275,7 +274,7 @@ test("Return a promise function", async (t) => {
 });
 
 test("Resolve a promise value once", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.fakeResolvedValueOnce(4444);
 
@@ -287,7 +286,7 @@ test("Resolve a promise value once", async (t) => {
 });
 
 test("Return a promise function once", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.fakeFunctionOnce(async () => 777);
 
@@ -299,7 +298,7 @@ test("Return a promise function once", async (t) => {
 });
 
 test("Reject a value", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.fakeRejectedValue(new Error("Espionage failed"));
 
@@ -309,7 +308,7 @@ test("Reject a value", async (t) => {
 });
 
 test("Reject a value once", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.fakeRejectedValueOnce(new Error("Espionage failed"));
 
@@ -319,7 +318,7 @@ test("Reject a value once", async (t) => {
 });
 
 test("Throws an error", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.throws(new TypeError("Espionage failed"));
 
@@ -327,7 +326,7 @@ test("Throws an error", async (t) => {
 });
 
 test("Throws an error with specified message", async (t) => {
-  const spy = createSpy(handleOptions());
+  const spy = spyFactory(handleOptions());
 
   spy.throws("Espionage failed");
 

@@ -4,10 +4,11 @@ const returnValue = Symbol("returnValue");
 const returnSpy = Symbol("returnSpy");
 const oneTime = Symbol("oneTime");
 const rehearsals = Symbol("rehearsals");
+const readCount = Symbol("readCount");
 
 export const isSpy = Symbol("spy");
 
-export function createSpy(configuration) {
+export function spyFactory(configuration) {
   function targetSpy(...args) {
     targetSpy.calls.push(args);
 
@@ -34,13 +35,13 @@ export function createSpy(configuration) {
         result = queuedReturn(...args);
         break;
       case "spy":
-        result = createSpy(configuration);
+        result = spyFactory(configuration);
         break;
       case "returnValue":
         result = targetSpy[returnValue](...args);
         break;
       default:
-        result = createSpy(configuration);
+        result = spyFactory(configuration);
     }
 
     targetSpy.results.push(result);
@@ -137,8 +138,13 @@ export function createSpy(configuration) {
         return this;
       },
     },
-    propertyAccessedCount: {
+    [readCount]: {
       value: {},
+    },
+    getReadCount: {
+      value: function (key) {
+        return targetSpy[readCount][key] || 0;
+      },
     },
     [isSpy]: {
       value: isSpy,
@@ -188,7 +194,7 @@ export function createSpy(configuration) {
       if (property === "bind") {
         return (context) => {
           target.instances.push(context);
-          return createSpy(configuration);
+          return spyFactory(configuration);
         };
       }
 
@@ -196,19 +202,19 @@ export function createSpy(configuration) {
 
       const value = hasKey
         ? Reflect.get(target, property)
-        : createSpy(configuration);
+        : spyFactory(configuration);
 
       if (!hasKey) {
         target[property] = value;
-        targetSpy.propertyAccessedCount[property] = 0;
+        targetSpy[readCount][property] = 0;
       }
 
-      targetSpy.propertyAccessedCount[property] += 1;
+      targetSpy[readCount][property] += 1;
 
       return value;
     },
     construct(target, args) {
-      const newSpy = createSpy(configuration);
+      const newSpy = spyFactory(configuration);
       target.instances.push(newSpy);
       target.calls.push(args);
       return newSpy;
