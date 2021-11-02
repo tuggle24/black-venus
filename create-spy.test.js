@@ -1,5 +1,5 @@
 import test from "ava";
-import { spyFactory, isSpy } from "./create-spy.js";
+import { spyFactory } from "./create-spy.js";
 import { handleOptions } from "./handle-options.js";
 
 test("return a spy function", (t) => {
@@ -105,9 +105,9 @@ test("Add custom properties", (t) => {
   spy.constants.PI = 3.14;
 
   t.notThrows(spy);
-  t.true(Reflect.has(spy, isSpy));
+  t.truthy(spy.fakeFunction);
   t.notThrows(spy.constants);
-  t.true(Reflect.has(spy.constants, isSpy));
+  t.truthy(spy.constants.fakeFunction);
   t.is(spy.constants.PI, 3.14);
 });
 
@@ -118,8 +118,8 @@ test("spyFactory create multiple different spies", (t) => {
   spy1();
   spy1();
   spy2();
-  spy1.spyName = "Harriet Tubman";
-  spy2.spyName = "Josephine";
+  spy1.setSpyName("Harriet Tubman");
+  spy2.setSpyName("Josephine");
 
   t.notDeepEqual(spy1, spy2);
   t.not(spy1.calls.length, spy2.calls.length);
@@ -143,16 +143,8 @@ test("Create spy with new keyword", (t) => {
 
   const result = new spy();
 
-  t.true(Reflect.has(result, isSpy));
-  t.true(Reflect.has(spy.instances[0], isSpy));
+  t.truthy(result.fakeFunction);
   t.is(result, spy.instances[0]);
-});
-
-test("Has private isSpy property", (t) => {
-  const spy = spyFactory(handleOptions());
-
-  t.true(Reflect.has(spy, isSpy));
-  t.falsy(Reflect.has(spy, "isSpy"));
 });
 
 test("Return spy by default", (t) => {
@@ -161,8 +153,8 @@ test("Return spy by default", (t) => {
   const trainedSpy = spy();
   const nestedSpy = spy.nested;
 
-  t.true(Reflect.has(nestedSpy, isSpy));
-  t.true(Reflect.has(trainedSpy, isSpy));
+  t.truthy(nestedSpy.fakeFunction);
+  t.truthy(trainedSpy.fakeFunction);
 });
 
 test("Use fakeValueOnce 3 times", (t) => {
@@ -177,7 +169,8 @@ test("Use fakeValueOnce 3 times", (t) => {
 
   const results = spy.results.filter((_, index) => index !== 0);
 
-  t.true(Reflect.has(spy.results[0], isSpy));
+  t.truthy(spy.results[0].fakeFunction);
+
   t.deepEqual(results, [7, 10, 17, 27]);
 });
 
@@ -196,8 +189,7 @@ test("Use fakeFunctionOnce 3 times", (t) => {
   spy();
 
   const results = spy.results.filter((_, index) => index !== 0);
-
-  t.true(Reflect.has(spy.results[0], isSpy));
+  t.truthy(spy.results[0].fakeFunction);
   t.deepEqual(results, [7, 10, 17, 27]);
 });
 
@@ -214,7 +206,7 @@ test("Create rehearsals with given and return methods", (t) => {
 
   t.is(result, 27);
   t.is(spy.results[1], 34);
-  t.true(Reflect.has(spy.results[2], isSpy));
+  t.truthy(spy.results[2].fakeFunction);
 });
 
 test("Create rehearsals with returns being a function", (t) => {
@@ -240,7 +232,7 @@ test("Create rehearsals with given and resolves methods", async (t) => {
 
   t.is(result1, 27);
   t.is(reuslt2, 34);
-  t.true(Reflect.has(spy.results[2], isSpy));
+  t.truthy(spy.results[2].fakeFunction);
 });
 
 test("Create rehearsals with resolves as functions", async (t) => {
@@ -282,7 +274,7 @@ test("Resolve a promise value once", async (t) => {
   const result2 = await spy();
 
   t.is(result1, 4444);
-  t.true(Reflect.has(result2, isSpy));
+  t.truthy(result2.fakeFunction);
 });
 
 test("Return a promise function once", async (t) => {
@@ -294,7 +286,7 @@ test("Return a promise function once", async (t) => {
   const result2 = await spy();
 
   t.is(result1, 777);
-  t.true(Reflect.has(result2, isSpy));
+  t.truthy(result2.fakeFunction);
 });
 
 test("Reject a value", async (t) => {
@@ -332,3 +324,62 @@ test("Throws an error with specified message", async (t) => {
 
   t.throws(spy, { message: "Espionage failed" });
 });
+
+// test("record created keys in a map", async (t) => {
+//   const spy = spyFactory(handleOptions());
+
+//   spy.setSpyName("josephine");
+
+//   spy.key1;
+//   spy.key2;
+//   spy.key3;
+//   spy.key3.key4;
+//   spy.key3.key5;
+//   spy.key3.key4.key6;
+//   spy.key3.key4.key7;
+
+//   t.deepEqual(spy.fakeKeyMap, {
+//     key1: [],
+//     key2: [],
+//     key3: [],
+//     key4: ["key3"],
+//     key5: ["key3"],
+//     key6: ["key3", "key4"],
+//     key7: ["key3", "key4"],
+//   });
+// });
+
+// test("record created keys in a list", async (t) => {
+//   const spy = spyFactory(handleOptions());
+
+//   spy.key1;
+//   spy.key2;
+//   spy.key3;
+//   spy.key3.key4;
+//   spy.key3.key5;
+//   spy.key3.key4.key6;
+//   spy.key3.key4.key7;
+
+//   t.deepEqual(spy.fakeKeys, [
+//     "key1",
+//     "key2",
+//     "key3",
+//     "key4",
+//     "key5",
+//     "key6",
+//     "key7",
+//   ]);
+// });
+
+// test("fakeKeyMap and fakeKeys do not interact between spies", async (t) => {
+//   const spy1 = spyFactory(handleOptions());
+//   const spy2 = spyFactory(handleOptions());
+
+//   spy1.prop1;
+//   spy1.prop2;
+//   spy2.prop1;
+//   spy2.prop2;
+
+//   t.not(spy1.fakeKeyMap, spy2.fakeKeyMap);
+//   t.not(spy1.fakeKeys, spy2.fakeKeys);
+// });

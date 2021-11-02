@@ -52,9 +52,10 @@ You can also pass an `object` with both or either keys set.
 # TODO
 
 - callOrder
-- keyList
-- renameKey
-- lockKey
+- fakeKeys
+- renameKeys
+- lockKeys
+- restart
 
 #### spy.fakeValue()
 
